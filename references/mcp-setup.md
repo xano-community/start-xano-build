@@ -31,6 +31,28 @@ claude mcp list
 
 ---
 
+## Cursor
+
+Add to `~/.cursor/mcp.json` (global, available in every project) or
+`.cursor/mcp.json` in the project root:
+
+```json
+{
+  "mcpServers": {
+    "xano": {
+      "command": "npx",
+      "args": ["-y", "@xano/developer-mcp"]
+    }
+  }
+}
+```
+
+You can also do this in the UI: **Settings → MCP → Add new MCP server**, with
+command `npx` and args `-y @xano/developer-mcp`. Make sure the `xano` server
+shows a green/enabled status, then start a new chat so the tools load.
+
+---
+
 ## Codex (OpenAI Codex CLI)
 
 Either run:

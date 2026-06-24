@@ -6,7 +6,8 @@ description: >-
   backend from a template," fork a xano-community repo into a Xano workspace, or
   build on top of one of the Xano community templates. Handles the full path:
   verifying the Xano CLI is installed, the Xano Developer MCP is enabled in the
-  current tool (Claude Code, Codex, GitHub Copilot, or OpenCode), and the CLI is
+  current tool (Claude Code, Cursor, Codex, GitHub Copilot, or OpenCode), and the
+  CLI is
   authenticated (including helping a brand-new user create a Xano account), then
   creating a workspace and importing the template — applying any modifications
   the user asks for.
@@ -73,8 +74,9 @@ up exact syntax.
 enabled — say so and move on.
 
 → If the tools are **not** available, the MCP isn't enabled. Determine which
-tool you're running inside (Claude Code, Codex, GitHub Copilot, or OpenCode) and
-give the user the matching setup from **`references/mcp-setup.md`**. Adding an
+tool you're running inside (Claude Code, Cursor, Codex, GitHub Copilot, or
+OpenCode) and give the user the matching setup from
+**`references/mcp-setup.md`**. Adding an
 MCP server requires **restarting the session/agent** before the tools load — so
 after the user adds it, ask them to restart their tool and re-invoke this skill.
 You cannot use the new MCP tools in the same session they were added.

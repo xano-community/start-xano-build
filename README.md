@@ -18,7 +18,7 @@ Point your agent at this skill and it will:
    it's pushed.
 5. **Configure & verify** — env vars, frontend wiring, seed data, and tests.
 
-Works in **Claude Code, Codex, GitHub Copilot, and OpenCode**.
+Works in **Claude Code, Cursor, Codex, GitHub Copilot, and OpenCode**.
 
 ---
 
@@ -103,10 +103,11 @@ git clone https://github.com/xano-community/start-xano-build.git \
   .claude/skills/start-xano-build
 ```
 
-### Codex / OpenCode / other agents
+### Cursor / Codex / OpenCode / other agents
 
-Clone into that tool's skills directory (e.g. `~/.codex/skills/`,
-`~/.config/opencode/skills/`, or the project-local equivalent):
+Clone into that tool's skills directory (e.g. `~/.cursor/skills/`,
+`~/.codex/skills/`, `~/.config/opencode/skills/`, or the project-local
+equivalent):
 
 ```sh
 git clone https://github.com/xano-community/start-xano-build.git start-xano-build
