@@ -18,6 +18,7 @@ xano --version
 ```sh
 xano auth                     # browser login; also where a new user signs up
 xano profile me               # who am I? (verifies auth)
+xano profile me -o json       # same, machine-readable (use for plan detection)
 xano profile list --details   # all profiles (masked tokens)
 xano profile workspace        # print active workspace id
 xano profile workspace set    # interactively choose the active workspace
@@ -25,6 +26,32 @@ xano profile edit -w <id>     # set default workspace non-interactively
 ```
 
 Credentials live in `~/.xano/credentials.yaml`.
+
+> **`xano auth` is interactive and must not be backgrounded.** After the browser
+> login it shows a terminal picker for instance/workspace/branch, and there's no
+> flag to preselect the instance. Have the *user* run it (a fresh terminal tab if
+> Node was just installed via nvm, so it's on `PATH`), then **poll** for success:
+> loop on `xano profile me` until it returns a profile (the auth window is 5
+> minutes). Don't proceed until it succeeds.
+
+### Detect the plan (Free vs paid)
+
+```sh
+xano profile me -o json
+```
+
+Read `extras.instance` (authoritative — don't use the instance name/host):
+
+- `package.name` — the plan (e.g. `pro-2x`); display it.
+- `k8s.additional.workspaces` — workspace entitlement. **`1` → Free, `> 1` → paid.**
+  Decisive signal.
+- `membership.rolePermissions` / `access_token.scope` — per-feature keys like
+  `workspace:workflow_test`; missing/zero means the plan lacks it (pre-exclude).
+
+Fallback if those fields are absent: count `xano workspace list`, and/or run
+`xano sandbox get` (provisions on paid, errors on Free — sandbox is paid-only);
+else ask. Plan decides the target: Free → existing workspace; paid → sandbox
+(which also covers a paid user who's out of workspace slots).
 
 ### Headless / no-browser fallback
 
@@ -39,13 +66,30 @@ xano profile create <name> -i <instance_origin> -t <access_token> -w <id> --defa
 Get the access token from the Xano dashboard (account settings → token / Metadata
 API access).
 
-## Workspaces
+## Workspaces (Free accounts push here)
 
 ```sh
 xano workspace list
 xano workspace get -w <id>
-xano workspace create "<name>" --description "<desc>"
+xano workspace create "<name>" --description "<desc>"   # paid only; Free can't
 ```
+
+## Sandbox (paid accounts push here)
+
+The sandbox is a singleton, auto-provisioned personal staging area. **Paid only
+— Free accounts can't use it.** Same multidoc push/pull as workspaces.
+
+```sh
+xano sandbox get                       # provision / confirm the sandbox exists
+xano sandbox push -d ./code --dry-run  # preview
+xano sandbox push -d ./code --force    # push (after the user approves)
+xano sandbox review --url-only         # print the review URL (don't auto-open)
+xano sandbox reset --force             # wipe sandbox data, keep the sandbox
+xano sandbox env set -n KEY --value v  # per-sandbox env vars
+```
+
+Avoid `xano sandbox push --review` in this skill — it opens the browser; we
+summarize with links instead.
 
 ## Importing / syncing code
 
@@ -59,14 +103,21 @@ xano workspace pull -d ./code -w <id>
 # Preview a push (do this first — push is an [IMPORTANT] op):
 xano workspace push -d ./code -w <id> --dry-run
 
-# Push for real:
-xano workspace push -d ./code -w <id>
+# Push for real, after the user approves the preview:
+xano workspace push -d ./code -w <id> --force
+
+# Exclude plan-gated files the server rejects (repeatable, globs relative to -d):
+xano workspace push -d ./code -w <id> -e 'workflow_test/**' --force
 ```
 
 `-d/--directory` is a flag, not a positional argument (default: current dir).
-Push is partial (changed files) by default; `--sync` does a full push and
-`--sync --delete` also removes remote objects missing locally (`[CRITICAL]` —
-confirm explicitly).
+`--force` skips the CLI's own terminal confirmation — needed because the agent
+shell is non-interactive, and only used **after** the user approves the
+`--dry-run` preview in chat. `-i/--include` and `-e/--exclude` take globs
+relative to the push dir and are repeatable — prefer `-e` over deleting files
+from the clone. Push is partial (changed files) by default; `--sync` does a full
+push and `--sync --delete` also removes remote objects missing locally
+(`[CRITICAL]` — confirm explicitly).
 
 ## Tests (if the template ships them)
 

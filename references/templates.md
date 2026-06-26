@@ -3,14 +3,27 @@
 All templates live in the **xano-community** GitHub org:
 https://github.com/orgs/xano-community/repositories
 
-Don't hardcode this list — it grows. List the org live to see everything:
+Don't hardcode this list — it grows. List the org live to see everything, **with
+a deterministic command — never a summarizing web fetch.** A summarizer can
+fabricate repos that don't exist (this is how a hallucinated `task-management`
+once slipped in); only trust names you parsed directly:
 
 ```sh
-gh repo list xano-community --limit 100
-# or:
-gh api "orgs/xano-community/repos?per_page=100" \
-  --jq '.[] | "\(.name) — \(.description // "")"'
+gh repo list xano-community --limit 200
+# no gh? parse the API yourself — do not summarize it:
+curl -s "https://api.github.com/orgs/xano-community/repos?per_page=100" | jq -r '.[].name'
+# (or: ... | grep '"name"')
 ```
+
+**Verify the repo exists before cloning** (must be HTTP 200):
+
+```sh
+gh api repos/xano-community/<repo> >/dev/null   # or:
+curl -s -o /dev/null -w '%{http_code}\n' https://github.com/xano-community/<repo>
+```
+
+If it isn't 200, re-list and correct — never push ahead on a guessed name. The
+goal→repo map below is a *hint*; the real name must appear in the live list.
 
 Always read the chosen repo's README before importing — its **Install** section
 names the directory to push and any required configuration.

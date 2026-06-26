@@ -7,13 +7,15 @@ a [xano-community](https://github.com/orgs/xano-community/repositories) template
 Point your agent at this skill and it will:
 
 1. **Preflight** — check Node.js, install/verify the
-   [Xano CLI](https://www.npmjs.com/package/@xano/cli), make sure the
-   [Xano Developer MCP](https://www.npmjs.com/package/@xano/developer-mcp) is
-   enabled in your tool, and authenticate the CLI — **including creating a Xano
-   account for you** if you don't have one yet (it happens right inside
-   `xano auth`).
-2. **Workspace** — create or pick the workspace to build in.
-3. **Template** — choose a xano-community repo and import it.
+   [Xano CLI](https://www.npmjs.com/package/@xano/cli), enable the
+   [Xano Developer MCP](https://www.npmjs.com/package/@xano/developer-mcp) (only
+   needed if you'll *modify* the template), and authenticate the CLI —
+   **including creating a Xano account for you** if you don't have one yet (it
+   happens right inside `xano auth`).
+2. **Target** — detect whether you're on Free or paid and import into the right
+   place: a disposable **sandbox** on paid plans, or your existing **workspace**
+   on Free.
+3. **Template** — choose a xano-community repo and import it into that target.
 4. **Modify** — apply any changes you ask for, validating the XanoScript before
    it's pushed.
 5. **Configure & verify** — env vars, frontend wiring, seed data, and tests.
@@ -59,9 +61,10 @@ The agent handles the rest: installing the Xano CLI, enabling the Xano Developer
 MCP, authenticating (or creating your Xano account), creating a workspace, and
 importing the template.
 
-> **First-run note:** enabling the Xano Developer MCP requires your tool to
-> restart before its tools load. If the skill adds the MCP for you, it'll ask
-> you to restart and paste your prompt again — then it continues from there.
+> **First-run note:** the Xano Developer MCP only loads after your tool restarts,
+> and it's only needed to *modify* a template. A plain import runs without it. If
+> your build includes changes and the skill had to add the MCP, it'll ask you to
+> restart and paste your prompt again — then it continues from there.
 
 ### More prompt ideas
 
@@ -80,8 +83,9 @@ The skill sets these up for you — listed so you know what it's touching:
 
 - Node.js ≥ 20.12.0
 - `@xano/cli` — installed for you if missing
-- `@xano/developer-mcp` enabled in your tool — **required** (the skill needs it
-  to write XanoScript correctly); the skill enables it for you
+- `@xano/developer-mcp` enabled in your tool — needed **only if you modify** the
+  template (it validates XanoScript); the skill enables it for you. A plain
+  import doesn't require it.
 - A Xano account — created for you during `xano auth` if you don't have one
 
 ---
