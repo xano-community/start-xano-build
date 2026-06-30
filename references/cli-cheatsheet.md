@@ -42,9 +42,10 @@ xano profile me -o json
 
 Read `extras.instance` (authoritative — don't use the instance name/host):
 
-- `package.name` — the plan (e.g. `pro-2x`); display it.
+- `package.name` — the plan (e.g. `pro-2x`); display it. **`build` is the Free
+  plan** (internal name; surface it as "Free (build plan)").
 - `k8s.additional.workspaces` — workspace entitlement. **`1` → Free, `> 1` → paid.**
-  Decisive signal.
+  Decisive signal (trust it over `package.name` if they disagree).
 - `membership.rolePermissions` / `access_token.scope` — per-feature keys like
   `workspace:workflow_test`; missing/zero means the plan lacks it (pre-exclude).
 
@@ -118,6 +119,23 @@ relative to the push dir and are repeatable — prefer `-e` over deleting files
 from the clone. Push is partial (changed files) by default; `--sync` does a full
 push and `--sync --delete` also removes remote objects missing locally
 (`[CRITICAL]` — confirm explicitly).
+
+## Get an API group's base URL (no user copy-paste)
+
+There's no CLI command that prints it, so use the Meta API. Base URL is
+`https://<instance-host>/api:<canonical>`:
+
+```sh
+HOST=$(xano profile me -o json | jq -r '.extras.instance.xano_domain // .extras.instance.host')
+TOKEN=$(grep -A20 'default' ~/.xano/credentials.yaml | grep -m1 'access_token' | awk '{print $2}')
+curl -s "https://$HOST/api:meta/workspace/<id>/apigroup" \
+  -H "Authorization: Bearer $TOKEN" | jq -r '.items[] | "\(.name): \(.canonical)"'
+```
+
+Read each group's `canonical` (the `api:xxxx` slug) and join it to the host.
+Field names can vary by account — inspect the raw JSON if needed; reference is
+`xano_meta_api_docs topic=apigroup`. **Never ask the user to open Xano and copy
+the base URL** — resolve it here.
 
 ## Tests (if the template ships them)
 

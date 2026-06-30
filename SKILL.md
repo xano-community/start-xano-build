@@ -37,7 +37,15 @@ modifications they asked for.
   `--force` to get past the CLI's own terminal confirmation prompt — that is fine
   **after** the user approved the previewed change. **Never push unprompted.**
 - **Be plan-aware.** Detect Free vs paid in Phase 2 and route the push
-  accordingly: Free → the user's one existing workspace; paid → the sandbox.
+  accordingly: Free → the user's one existing workspace; paid → the sandbox. The
+  **Free plan is named `build`** internally (`package.name: "build"`) — it's no
+  longer called "Build" publicly, but the profile still reports it that way, so
+  treat `build` (or any plan whose workspace entitlement is `1`) as Free.
+- **Say the same thing every run.** The user should not see different wording or
+  a different flow each time. Four touchpoints have **defined scripts** you must
+  follow rather than improvising: the install menu (Phase 1), the dry-run preview
+  (Phase 4), the plan-gated notice (Phase 4), and the final summary (Phase 6).
+  Fill in the values, keep the structure.
 - **Don't maintain a list of plan-gated features.** If a push is rejected because
   the plan doesn't support something (e.g. workflow tests), read the error,
   exclude what it names with `-e`, retry, and tell the user that feature was
@@ -56,6 +64,27 @@ modifications they asked for.
 - **Prefer the MCP docs tools over memory.** For exact CLI flags or XanoScript
   syntax, call `xano_cli_docs`, `xano_meta_api_docs`, and `xano_xanoscript_docs`
   rather than recalling them.
+
+---
+
+## Phase 0 — Capture intent up front
+
+Before any preflight, settle two things in **one** short exchange (skip whatever
+the user already told you — don't re-ask):
+
+1. **What are we building?** A specific template name, or a goal to match to one
+   ("a CRM", "send emails"). You confirm the real repo against the live list in
+   Phase 3 — here you just need the intent.
+2. **Any modifications, or import the template as-is?** Ask this **now**, not
+   after the import. It changes the run: modifications require the Xano Developer
+   MCP, which only loads after a tool restart (Phase 1c / Phase 5), so the user
+   should know up front that a restart is coming.
+
+If they want changes, tell them plainly: *"I'll install the Xano MCP now so it's
+ready, import the template, then you'll restart once before I make your edits."*
+That sets expectations so the restart later isn't a surprise.
+
+Don't expand this into a questionnaire — two questions, then move on.
 
 ---
 
@@ -99,21 +128,73 @@ import-only build (Phases 1–4, 6) runs fine without it.
 `xano_validate_xanoscript`, `xano_cli_docs`, `xano_xanoscript_docs`) are
 available in this session, it's enabled — say so and move on.
 
-→ If not available, plan to add it using the matching block in
-**`references/mcp-setup.md`** for the tool you're in. Adding an MCP server
-requires **restarting the session before its tools load** — you cannot use them
-in the same session they were added. So: if the user only wants the template
-imported, proceed without it (note that modifications would need a restart). If
-the build includes modifications, add it, then ask the user to restart and
-re-invoke the skill before Phase 5.
+→ If not available, **always plan to register it** (don't skip it just because
+this run is import-only) using the matching block in **`references/mcp-setup.md`**
+for the tool you're in. Registering it now means it's ready the moment the user
+wants changes, with no second setup trip. Adding an MCP server requires
+**restarting the session before its tools load** — you cannot use them in the
+same session they were added. The registration is cheap; only the restart has a
+cost, and you only pay it when modifications are actually requested:
+
+- **Import-only run** → register the MCP, but no restart is needed now. Just note
+  it's installed and ready if they later want changes.
+- **Modifications requested** (known from Phase 0) → register it, then before
+  Phase 5 have the user restart. See "Restarting back into this same session"
+  below — give them an exact resume command so they land right back here mid-run,
+  not in a fresh skill invocation.
+
+#### Restarting back into this same session
+
+A real restart is unavoidable (MCP servers load only at startup; nothing reloads
+them mid-session — not `/mcp`, no hook), and **only the human can do it.**
+
+> **Never try to restart the host yourself** — no `kill`/`pkill` of the `claude`
+> process, no `kill <pid> && claude --resume …` one-liner. Your Bash commands run
+> as a *descendant* of the interactive host, so killing it also kills the shell
+> mid-relaunch, and any process you spawn has no terminal to attach to — you'd
+> leave the user with a dead prompt and an orphaned headless session. Re-attaching
+> to the terminal can only be done by its own foreground shell, i.e. the human.
+
+So hand them the precise command to relaunch **this exact conversation** with the
+MCP live: 
+
+- **Claude Code** → you know this session's ID from the `${CLAUDE_SESSION_ID}`
+  skill substitution. Tell the user to quit Claude Code and, **from this project
+  directory** (resume lookup is dir-scoped), run:
+  ```sh
+  claude --resume ${CLAUDE_SESSION_ID}
+  ```
+  This drops them back into the current transcript — they do **not** re-invoke
+  the skill; we just continue from Phase 5. Prefer `--resume <id>` over
+  `--continue`: `--continue` grabs the *most recent* session in the directory,
+  which is the wrong one if they have others open.
+- **Other tools** (Cursor, Codex, Copilot, OpenCode) → no equivalent
+  resume-by-id; tell them to restart the tool and re-invoke the skill, and we
+  pick up at Phase 5.
 
 ### Consolidated install step
 
-After 1a–1c, tell the user exactly what's missing and what you'll do — e.g.
-*"Node, the Xano CLI, and the Xano MCP aren't set up. I'll install Node, install
-`@xano/cli`, and register the MCP. Proceed?"* — get one confirmation, then
-install everything non-interactively. If nothing is missing, skip straight to
-1d.
+After 1a–1c, present what's missing as a **fixed menu** (same shape every run —
+this is one of the four defined touchpoints). List each missing item as a numbered
+line, then offer the same three choices. Only list items that are actually
+missing:
+
+```
+Here's what's needed before we build. I found these missing:
+
+  1. Node.js ≥ 20.12.0      — runtime for the CLI
+  2. Xano CLI (@xano/cli)   — pushes the template to your account
+  3. Xano Developer MCP     — validates XanoScript (needed if you customize)
+
+How do you want to proceed?
+  • Install all  — I set up everything above, hands-off (recommended)
+  • Pick some    — tell me which numbers to install
+  • Cancel
+```
+
+Get one answer, then install the chosen items non-interactively — no per-tool
+prompts, no asking which install method. If nothing is missing, say so in one
+line and skip straight to 1d.
 
 ### 1d. CLI authenticated with a Xano account
 
@@ -164,10 +245,13 @@ xano profile me -o json
 Use the **authoritative fields** under `extras.instance` — not the instance name
 or host:
 
-- **Plan** — `package.name` (e.g. `pro-2x`). Display it to the user.
+- **Plan** — `package.name` (e.g. `pro-2x`). Display it to the user. **`build`
+  is the Free plan** (its public name changed but the profile still says
+  `build`) — surface it as "Free (build plan)" so the user recognizes it.
 - **Workspace entitlement** — `k8s.additional.workspaces`: the number of
   workspaces the plan allows. This is the **decisive** Free/paid signal:
-  **`1` → Free, `> 1` → paid.**
+  **`1` → Free, `> 1` → paid.** `package.name: "build"` corroborates Free; if the
+  two ever disagree, trust the entitlement count.
 - **Feature permissions** — `membership.rolePermissions` (mirrored in
   `access_token.scope`): per-feature keys such as `workspace:workflow_test`. A
   missing/zero key means the plan doesn't include that feature.
@@ -197,12 +281,21 @@ still unsure, ask the user.
   Don't offer to create one. The experience is intentionally a little less
   seamless here — every push is confirmed (Phase 4).
 
-**Pre-flag gated features.** If `rolePermissions` lacks `workspace:workflow_test`
-(or another feature a template uses), you already know the plan can't import it —
-plan to exclude it in Phase 4 and tell the user, rather than waiting for the push
-to fail. The error-driven exclude in Phase 4 stays as the safety net regardless.
+**Pre-flag gated features (so the push never gets surprised).** If
+`rolePermissions` lacks a feature key — most commonly `workspace:workflow_test` on
+Free — you already know the plan can't import it. **Exclude it from the start** (in
+both the dry-run and the real push, Phase 4) instead of letting the push fail and
+reacting. This is what keeps the run consistent: a Free user gets the same clean
+push every time, not a reject-then-retry on one run and a smooth push on another.
+The error-driven exclude in Phase 4 stays as the safety net for anything you
+didn't anticipate.
 
-Note the target (workspace id, or "sandbox") — Phase 4 uses it.
+Deliver the gated notice **after the user picks a template** (Phase 3), once you
+know which gated features that template actually touches — not as an abstract
+warning here. Hold this finding for then. The wording is defined in Phase 4.
+
+Note the target (workspace id, or "sandbox") and any pre-excludes — Phase 4 uses
+them.
 
 ---
 
@@ -257,16 +350,67 @@ git clone https://github.com/xano-community/<repo>.git && cd <repo>
 The README names the push directory: **full apps → `backend/`**, **integrations
 → the repo root (`.`)**.
 
+### Plan-gated notice (defined wording)
+
+Now that the template is chosen, check what it contains against the plan gaps you
+found in Phase 2. If the template uses a feature the plan doesn't include (e.g.
+the `backend/` has a `workflow_test/` directory and the plan lacks
+`workspace:workflow_test`), say this **before** the dry-run — defined touchpoint,
+keep the structure:
+
+```
+Heads up on your plan (Free / build):
+
+  ✓ Everything that makes this template work will import and run.
+  ✗ Skipping: workflow tests — your plan doesn't include them.
+
+This won't affect the running app; you'd only use workflow tests for automated
+end-to-end checks. You can enable them later by upgrading your plan in the Xano
+dashboard (Billing).
+
+I'll exclude that and push the rest now.
+```
+
+Lead with the reassurance that the result still works, name exactly what's
+skipped and why, and point them to upgrading in the dashboard. Don't paste a
+guessed billing URL — link the dashboard you already know (`app.xano.com`) or say
+"Billing in your account settings" rather than inventing a path. If the template uses **no** gated
+features, say one line — "Your plan covers everything in this template" — and
+skip straight to the preview. List only features the template actually contains;
+don't warn about gates that don't apply here.
+
+Carry the corresponding `-e` excludes into **both** the dry-run and the real push
+below, so the preview matches exactly what gets pushed.
+
+### Preview → approve → push
+
 Every push is **preview → approve → push**. Show the `--dry-run` output, get an
 explicit "yes" in chat, then run the real push with `--force` (required for the
 non-interactive shell, used only after approval).
 
+Present the dry-run as a **defined summary** (don't free-form a different shape
+each run):
+
+```
+Dry run — nothing has been pushed yet. This previews what the real push will do.
+
+Target: <workspace name (id)>  ·  or: sandbox
+Will create/update: <N> objects  (<e.g. 12 APIs, 4 tables, 3 functions>)
+Excluded (plan-gated): workflow tests        # omit this line if nothing excluded
+
+Reply "yes" to push for real, or tell me what to change.
+```
+
+Apply the same `-e <glob>` excludes (from the plan-gated notice) to **both** the
+dry-run and the real push so the preview is honest.
+
 **Free — direct workspace push:**
 
 ```sh
-xano workspace push -d ./backend -w <id> --dry-run     # show this preview
-# → user approves, then:
-xano workspace push -d ./backend -w <id> --force
+# pre-exclude known plan gaps from the start, e.g. -e 'workflow_test/**' on Free:
+xano workspace push -d ./backend -w <id> [-e 'workflow_test/**'] --dry-run   # preview
+# → user approves, then (same excludes):
+xano workspace push -d ./backend -w <id> [-e 'workflow_test/**'] --force
 ```
 
 **Paid — sandbox push:**
@@ -299,8 +443,24 @@ instead of deleting files from the clone.** Read each error and exclude only wha
 it names. Cap this at a few retries; if it still fails for a different reason,
 stop and report the raw error.
 
-After it lands, confirm: `xano workspace get -w <id>` (Free) or
-`xano sandbox get` (paid).
+### Confirm the push actually landed — don't assume
+
+A push can be **rejected and leave nothing imported** (this is how a run silently
+"completes" with an empty workspace). Never report success off the absence of an
+error or a dry-run alone — **verify the objects are really there:**
+
+```sh
+xano workspace get -w <id>   # Free   — confirm object counts > 0
+xano sandbox get             # paid   — confirm the sandbox has the pushed objects
+```
+
+Check that the count of created/updated objects matches what the dry-run
+promised (minus anything intentionally excluded). If the real push returned a
+non-zero exit, a `4xx/5xx`, or `0` objects landed, the import did **not** succeed
+— treat it as a failure: surface the raw error, retry with the right exclude if
+it was plan-gated, and do **not** advance to Phase 5/6 until a verified push
+exists. A rejected `workflow_test` push that you didn't pre-exclude is the
+classic cause — exclude it and re-push, then re-verify.
 
 ---
 
@@ -312,8 +472,11 @@ If they asked for modifications (rename things, add fields/endpoints, change
 logic, wire in another integration):
 
 1. **The Xano Developer MCP must be loaded** for this phase (it validates
-   XanoScript). If you added it in Phase 1, the user must restart their tool and
-   re-invoke the skill before you can use it.
+   XanoScript). If you added it in Phase 1 and its tools still aren't available,
+   the user must restart first — hand them the exact resume command from
+   **"Restarting back into this same session"** (Phase 1c). On Claude Code that's
+   `claude --resume ${CLAUDE_SESSION_ID}` from this directory, which lands them
+   back here so we continue straight into this phase (no skill re-invoke).
 2. Make sure the code is on disk (the clone in Phase 4 gives you this; otherwise
    `xano workspace pull -d ./code -w <id>` or `xano sandbox pull -d ./code`).
 3. Edit the relevant `.xs` files — organized by type (`api/<group>/`,
@@ -336,18 +499,44 @@ Depending on the template (the README spells out which apply):
 - **Seed / demo data** — many apps expose a `POST /seed` endpoint. Offer to call
   it (e.g. `curl -X POST https://<instance>.xano.io/api:<group>/seed`).
 - **Frontend** — full-app templates often ship `frontend/index.html` with an
-  `API_BASE` constant near the top. Tell the user to point it at the API group's
-  base URL, then open the file.
+  `API_BASE` constant near the top. **Get the base URL yourself and fill it in —
+  never tell the user to open Xano and copy it.** You have everything needed: the
+  instance host (from `xano profile me -o json`) and the token (from
+  `~/.xano/credentials.yaml`). See "Look up the API base URL" below, then edit
+  `API_BASE` in the file directly.
 - **Tests** — run unit tests if present: `xano unit_test run_all -w <id>`.
   Workflow tests are paid-gated; only run `xano workflow_test run_all` if the
   plan supports them.
 
+### Look up the API base URL (automatic — no user intervention)
+
+The base URL is `https://<instance-host>/api:<canonical>`, where `<canonical>` is
+the API group's slug. **Resolve it from the Meta API after the push** — there's no
+reason to ask the user to fetch it:
+
+```sh
+# instance host from the authenticated profile:
+HOST=$(xano profile me -o json | jq -r '.extras.instance.xano_domain // .extras.instance.host')
+# access token the CLI already stored:
+TOKEN=$(grep -A20 'default' ~/.xano/credentials.yaml | grep -m1 'access_token' | awk '{print $2}')
+# list the workspace's API groups; read each group's canonical/base URL:
+curl -s "https://$HOST/api:meta/workspace/<id>/apigroup" \
+  -H "Authorization: Bearer $TOKEN" | jq -r '.items[] | "\(.name): \(.canonical)"'
+```
+
+The `listApiGroups` response carries each group's `canonical` (and a full base
+URL field) — join it to the host. If the exact field names differ on the account,
+read the raw JSON and pick the base URL out of it; **don't fall back to asking the
+user.** (Field shapes can vary — `xano_meta_api_docs topic=apigroup` is the
+reference.) Match the API group named in the template's README to its base URL.
+
 Then summarize, without opening a browser:
 
-- the plan (Free/paid) and **where it landed** — workspace name + id, or the
-  sandbox;
-- **what was pushed**, and **anything skipped** for plan reasons (and why);
-- the **API group base URL** (look it up via the Meta API if no command shows it);
+- the plan (Free/paid, shown as "Free (build plan)" when applicable) and **where
+  it landed** — workspace name + id, or the sandbox;
+- **what was pushed**, and **anything skipped** for plan reasons (and why) — same
+  framing as the Phase 4 gated notice: the result still works;
+- the **API group base URL** — resolved above, never asked of the user;
 - any **env vars** still needing real values;
 - **next steps and links** — the Xano dashboard URL, and for paid the sandbox
   review URL via `xano sandbox review --url-only` (printed, not opened).
