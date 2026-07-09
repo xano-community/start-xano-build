@@ -70,6 +70,42 @@ landed.
   `xano profile me`, or command output. Never guess.
 - **Prefer the MCP docs tools over memory.** For exact CLI flags or XanoScript
   syntax, call `xano_cli_docs`, `xano_meta_api_docs`, and `xano_xanoscript_docs`.
+- **Keep the channel quiet.** Between the defined blocks, narrate as little as
+  possible — see *Output discipline* below. Routine tool calls speak for
+  themselves; don't wrap them in prose.
+
+---
+
+## Output discipline — quiet by default
+
+The run is hard to follow when routine narration crowds out the messages that
+matter. Between the defined blocks, **say as little as possible.** Someone
+scanning the transcript should see only: which phase we're in, the defined
+blocks, questions to them, and real errors — nothing in between.
+
+**Only emit:**
+
+1. **One short phase marker** when a phase begins — a single bold line, nothing
+   more (e.g. `**Checking your plan…**`, `**Picking a template…**`). Not a
+   paragraph about what the phase is going to do.
+2. **The defined blocks**, with their set structure: the plan-gated notice and
+   the dry-run preview (Phase 4), and the final summary (Phase 6).
+3. **Questions and approval requests** — clearly, on their own line.
+4. **Real errors** — the raw error plus the single next step. No padding.
+
+**Never emit:**
+
+- Narration of tool calls — no "Now I'll run…", "Let me check…", "I'm going
+  to…", "Great, that worked!". The harness already shows the command and its
+  output; don't restate them.
+- Recaps of what a command returned, unless it's a decision the user must act on.
+- Preambles before, or summaries after, routine steps that simply succeeded —
+  go straight to the next phase marker.
+- Thinking out loud, option surveys, or reassurance filler.
+
+If a step succeeds and nothing is required of the user, advance **silently** to
+the next phase marker. Prose is the exception, not the connective tissue between
+every tool call.
 
 ---
 
