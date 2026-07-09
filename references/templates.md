@@ -1,5 +1,10 @@
 # xano-community templates
 
+> **The live xano-community org listing is the source of truth** for what the
+> skill offers — fetched fresh every run (Phase 3), never from an embedded list.
+> This file explains how to list it deterministically, maps common goals to
+> repos (a *hint* only), and describes the two on-disk *layouts*.
+
 All templates live in the **xano-community** GitHub org:
 https://github.com/orgs/xano-community/repositories
 

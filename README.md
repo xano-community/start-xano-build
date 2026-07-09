@@ -1,146 +1,125 @@
 # start-xano-build
 
-An **agent skill** that takes you from zero to a working Xano backend built from
-a [xano-community](https://github.com/orgs/xano-community/repositories) template
-— without leaving your AI coding tool.
+**One terminal command opens Claude Code — with the Xano CLI installed and
+authenticated and the Xano Developer MCP registered — ready to import or add a
+certified [xano-community](https://github.com/orgs/xano-community/repositories)
+template, module, or third-party integration into Xano.**
 
-Point your agent at this skill and it will:
+All the setup that used to be flaky (installing the CLI, logging in, wiring up
+the MCP) now happens **in your terminal, before Claude starts**. By the time the
+agent is running, everything it needs is already in place — so it can focus on
+the Xano workflow instead of fighting its own environment.
 
-1. **Preflight** — check Node.js, install/verify the
-   [Xano CLI](https://www.npmjs.com/package/@xano/cli), enable the
-   [Xano Developer MCP](https://www.npmjs.com/package/@xano/developer-mcp) (only
-   needed if you'll *modify* the template), and authenticate the CLI —
-   **including creating a Xano account for you** if you don't have one yet (it
-   happens right inside `xano auth`).
-2. **Target** — detect whether you're on Free or paid and import into the right
-   place: a disposable **sandbox** on paid plans, or your existing **workspace**
-   on Free.
-3. **Template** — choose a xano-community repo and import it into that target.
-4. **Modify** — apply any changes you ask for, validating the XanoScript before
-   it's pushed.
-5. **Configure & verify** — env vars, frontend wiring, seed data, and tests.
-
-Works in **Claude Code, Cursor, Codex, GitHub Copilot, and OpenCode**.
+> **v1 is Claude Code only.** Support for other tools may come later.
 
 ---
 
-## Quick start — paste this to your agent
+## Quick start
 
-You don't need to install anything yourself. Copy one of these prompts into your
-AI coding tool and it will install the skill and run the whole thing for you:
+Paste this into your terminal:
 
-**Let it walk you through picking a template:**
-
-```
-Set up the start-xano-build agent skill from
-https://github.com/xano-community/start-xano-build — clone it into my skills
-directory and follow its SKILL.md now — then help me start a Xano build from a
-xano-community template. Walk me through choosing one.
+```sh
+tmp="$(mktemp)" && curl -fsSL https://raw.githubusercontent.com/xano-community/start-xano-build/main/start.sh -o "$tmp" && bash "$tmp"; rm -f "$tmp"
 ```
 
-**Start from a specific template:**
+That's it. The script downloads to a temp file and runs it (rather than
+`curl | bash`) so the interactive `xano auth` step gets a real terminal.
 
-```
-Install and run the start-xano-build skill from
-https://github.com/xano-community/start-xano-build (clone it into my skills
-directory and follow its SKILL.md). Use it to import the todo-app template
-into a new Xano workspace.
-```
+### What the command does, in order
 
-**Build toward a goal (with a tweak):**
+1. **Installs the skill** into `~/.claude/skills/start-xano-build` (or updates it
+   if already there).
+2. **Ensures Claude Code** is installed.
+3. **Ensures Node.js** ≥ 20.12.0 — installing a **private** copy if you don't
+   have a suitable one, without touching your shell profile.
+4. **Installs the Xano CLI and Xano Developer MCP** into a private location under
+   `~/.xano-community/start-xano-build/`, behind stable wrapper commands (no
+   global `npm install`).
+5. **Authenticates the Xano CLI** — runs `xano auth` in the foreground and waits
+   for you to finish the browser login and pick your instance. Brand new? Choose
+   **sign up** on that page and you'll come back authenticated.
+6. **Registers the Xano Developer MCP** with Claude Code at user scope, so it's
+   available in every project — not just wherever you ran this.
+7. **Launches Claude Code** with an initial prompt that starts the build.
 
-```
-Use the start-xano-build skill from
-https://github.com/xano-community/start-xano-build (clone it into my skills
-directory and follow its SKILL.md) to build a Xano backend that accepts Stripe
-payments based on the community template — and add a `notes` field to the
-customers table.
-```
-
-The agent handles the rest: installing the Xano CLI, enabling the Xano Developer
-MCP, authenticating (or creating your Xano account), creating a workspace, and
-importing the template.
-
-> **First-run note:** the Xano Developer MCP only loads after your tool restarts,
-> and it's only needed to *modify* a template. A plain import runs without it. If
-> your build includes changes and the skill had to add the MCP, it'll ask you to
-> restart and paste your prompt again — then it continues from there.
-
-### More prompt ideas
-
-- *"…use the skill to import the support-ticketing template and rename the
-  `ticket` table to `case`."*
-- *"…use the skill to spin up the client-intake template in a brand-new
-  workspace called `acme-intake`."*
-- *"…use the skill to build a Xano backend that sends email via Resend, based on
-  the community template, and add a daily digest task."*
+Then Claude asks what you want to build and where it should land.
 
 ---
 
 ## What you'll need
 
-The skill sets these up for you — listed so you know what it's touching:
+The bootstrap sets these up for you — listed so you know what it touches:
 
-- Node.js ≥ 20.12.0
-- `@xano/cli` — installed for you if missing
-- `@xano/developer-mcp` enabled in your tool — needed **only if you modify** the
-  template (it validates XanoScript); the skill enables it for you. A plain
-  import doesn't require it.
-- A Xano account — created for you during `xano auth` if you don't have one
+- **A terminal** (macOS or Linux).
+- **`git`** and **`curl`** already present (standard on most machines).
+- **Node.js ≥ 20.12.0** — a private copy is installed if you don't have one.
+- **A Xano account** — create one during `xano auth` (choose *sign up*) if you
+  don't have one yet.
+- **Claude Code** — installed for you if missing.
+
+Everything Xano-related installs under `~/.xano-community/start-xano-build/` and
+can be removed by deleting that directory (plus the `xano` MCP entry via
+`claude mcp remove xano` and the skill at `~/.claude/skills/start-xano-build`).
 
 ---
 
-## Manual install
+## What Claude does once it's running
 
-Prefer to install the skill yourself instead of via a prompt? Clone this repo
-into your agent's skills directory, then start a fresh session.
+The skill (`SKILL.md`) owns the **Xano workflow**, not setup. It:
 
-### Claude Code
+1. **Verifies the bootstrap state** — MCP tools present, Xano CLI installed and
+   authenticated. If anything's missing, it stops and tells you to rerun the
+   command above (it never tries to install or register things mid-session).
+2. **Detects your plan** (Free vs paid) and routes the push to the right target:
+   your existing **workspace** on Free, a disposable **sandbox** on paid, or a
+   **fresh build**.
+3. **Picks an item** from the **live xano-community catalog** (pulled from GitHub
+   that run) — a full app, a module, or a third-party integration.
+4. **Previews the import** with a dry-run and shows you exactly what will change.
+5. **Pushes only after you say yes**, then **verifies the objects actually
+   landed** — never reporting success off a dry-run alone.
+6. **Configures and hands off** — env vars, frontend API base URL, seed data, and
+   next-step links.
 
-```sh
-# all projects:
-git clone https://github.com/xano-community/start-xano-build.git \
-  ~/.claude/skills/start-xano-build
+---
 
-# …or just this project:
-git clone https://github.com/xano-community/start-xano-build.git \
-  .claude/skills/start-xano-build
-```
+## What's supported
 
-### Cursor / Codex / OpenCode / other agents
+Whatever the **xano-community** org publishes. The skill pulls the catalog from
+GitHub on **every run** (deterministically — not by summarizing a web page, which
+can invent repos), so new templates and integrations show up the moment they land
+in the org. Nothing is baked into the skill.
 
-Clone into that tool's skills directory (e.g. `~/.cursor/skills/`,
-`~/.codex/skills/`, `~/.config/opencode/skills/`, or the project-local
-equivalent):
+Browse everything in the org:
+https://github.com/orgs/xano-community/repositories
 
-```sh
-git clone https://github.com/xano-community/start-xano-build.git start-xano-build
-```
-
-Move/symlink the `start-xano-build/` folder into wherever your agent loads skills
-from, restart the session, then invoke it by name (**`start-xano-build`**) or
-just describe your goal.
-
-> The skill depends on the **Xano Developer MCP** (`@xano/developer-mcp`) being
-> enabled in your tool. If it isn't, the skill detects this and walks you through
-> adding it for your specific tool — see
-> [`references/mcp-setup.md`](references/mcp-setup.md).
+> If GitHub's unauthenticated rate limits or curation ever become an issue, the
+> skill can fetch the catalog from a proxy endpoint instead (via a
+> `XANO_CATALOG_URL` the bootstrap sets) — no credentials embedded in the public
+> script. Until then, the direct org listing is the source of truth.
 
 ---
 
 ## What's in here
 
 ```
+start.sh                      # the terminal bootstrap (installs, authenticates, launches Claude)
 SKILL.md                      # the skill — six gated phases the agent follows
 references/
-  mcp-setup.md                # enable the Xano Developer MCP per tool
   cli-cheatsheet.md           # the Xano CLI commands used, with a headless fallback
-  templates.md                # the xano-community catalog + template layouts
+  templates.md                # deterministic org listing, goal→repo hints, the two layouts
 ```
 
-## Browse the templates
+## Manual install
 
-All templates live in the **xano-community** org:
-https://github.com/orgs/xano-community/repositories — full apps (e.g.
-`todo-app`, `support-ticketing`) and integrations (e.g.
-`integration-stripe-payments`, `integration-resend-email`).
+Prefer to set up the skill yourself? Clone it into your Claude Code skills
+directory:
+
+```sh
+git clone https://github.com/xano-community/start-xano-build.git \
+  ~/.claude/skills/start-xano-build
+```
+
+You'll still need the Xano CLI installed and authenticated and the Xano Developer
+MCP registered before the skill can run — which is exactly what `start.sh`
+automates. Running the one-paste command above is the supported path.

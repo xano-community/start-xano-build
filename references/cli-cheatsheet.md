@@ -27,12 +27,12 @@ xano profile edit -w <id>     # set default workspace non-interactively
 
 Credentials live in `~/.xano/credentials.yaml`.
 
-> **`xano auth` is interactive and must not be backgrounded.** After the browser
-> login it shows a terminal picker for instance/workspace/branch, and there's no
-> flag to preselect the instance. Have the *user* run it (a fresh terminal tab if
-> Node was just installed via nvm, so it's on `PATH`), then **poll** for success:
-> loop on `xano profile me` until it returns a profile (the auth window is 5
-> minutes). Don't proceed until it succeeds.
+> **`xano auth` is owned by the bootstrap (`start.sh`), not the skill.** It's
+> interactive — after the browser login it shows a terminal picker for
+> instance/workspace/branch, with no flag to preselect the instance — so it runs
+> in the foreground of a real terminal *before* Claude starts. The skill only
+> **verifies** auth with `xano profile me` (Phase 0) and stops with "rerun the
+> bootstrap" if it fails. Never run `xano auth` from inside a Claude session.
 
 ### Detect the plan (Free vs paid)
 
