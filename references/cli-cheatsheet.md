@@ -25,14 +25,15 @@ xano profile workspace set    # interactively choose the active workspace
 xano profile edit -w <id>     # set default workspace non-interactively
 ```
 
-Credentials live in `~/.xano/credentials.yaml`.
+Credentials live in `~/.xano/credentials.yaml` and persist across a Claude
+restart — so the skill's mid-run restart never loses the sign-in.
 
-> **`xano auth` is owned by the bootstrap (`start.sh`), not the skill.** It's
-> interactive — after the browser login it shows a terminal picker for
-> instance/workspace/branch, with no flag to preselect the instance — so it runs
-> in the foreground of a real terminal *before* Claude starts. The skill only
-> **verifies** auth with `xano profile me` (Phase 0) and stops with "rerun the
-> bootstrap" if it fails. Never run `xano auth` from inside a Claude session.
+> **`xano auth` is interactive — the *user* runs it, never the agent.** After the
+> browser login it shows a terminal picker for instance/workspace/branch, with no
+> flag to preselect the instance, so a backgrounded run cancels the flow and writes
+> no credentials. The skill hands the user the `xano auth` instruction (Phase 1),
+> then **polls `xano profile me`** until it succeeds. Never background `xano auth`
+> or run it from a non-interactive agent shell.
 
 ### Detect the plan (Free vs paid)
 

@@ -1,85 +1,82 @@
 # start-xano-build
 
-**One terminal command opens Claude Code — with the Xano CLI installed and
-authenticated and the Xano Developer MCP registered — ready to import or add a
-certified [xano-community](https://github.com/orgs/xano-community/repositories)
-template, module, or third-party integration into Xano.**
+**A Claude Code skill that imports a certified
+[xano-community](https://github.com/orgs/xano-community/repositories) template,
+module, or third-party integration into Xano — installing the Xano CLI,
+registering the Xano Developer MCP, signing you in, and building, all from one
+conversation.**
 
-All the setup that used to be flaky (installing the CLI, logging in, wiring up
-the MCP) now happens **in your terminal, before Claude starts**. By the time the
-agent is running, everything it needs is already in place — so it can focus on
-the Xano workflow instead of fighting its own environment.
+You install the skill once. From then on, just tell Claude what you want to build
+("start a Xano CRM", "add Stripe payments") and the skill handles the rest: it sets
+up the Xano tools, has you sign in, restarts Claude once so the tools load, then
+picks the right template from the live catalog and pushes it into your account.
 
-> **v1 is Claude Code only.** Support for other tools may come later.
+> **Claude Code only.** Support for other tools may come later.
 
 ---
 
-## Quick start
+## Install the skill
 
-Paste this into your terminal:
+Clone it into your Claude Code skills directory:
 
 ```sh
-tmp="$(mktemp)" && curl -fsSL https://raw.githubusercontent.com/xano-community/start-xano-build/main/start.sh -o "$tmp" && bash "$tmp"; rm -f "$tmp"
+git clone https://github.com/xano-community/start-xano-build.git \
+  ~/.claude/skills/start-xano-build
 ```
 
-That's it. The script downloads to a temp file and runs it (rather than
-`curl | bash`) so the interactive `xano auth` step gets a real terminal.
+That's the whole install. The **first time you run it**, the skill installs the
+Xano CLI and registers the Xano Developer MCP for you — so a one-time Claude
+restart is part of that first run (Claude only loads MCP tools at startup). The
+skill hands you the exact `claude --resume …` command and picks up right where it
+left off.
 
-### What the command does, in order
+---
 
-1. **Installs the skill** into `~/.claude/skills/start-xano-build` (or updates it
-   if already there).
-2. **Ensures Claude Code** is installed.
-3. **Ensures Node.js** ≥ 20.12.0 — installing a **private** copy if you don't
-   have a suitable one, without touching your shell profile.
-4. **Installs the Xano CLI and Xano Developer MCP** into a private location under
-   `~/.xano-community/start-xano-build/`, behind stable wrapper commands (no
-   global `npm install`).
-5. **Authenticates the Xano CLI** — runs `xano auth` in the foreground and waits
-   for you to finish the browser login and pick your instance. Brand new? Choose
-   **sign up** on that page and you'll come back authenticated.
-6. **Registers the Xano Developer MCP** with Claude Code at user scope, so it's
-   available in every project — not just wherever you ran this.
-7. **Launches Claude Code** with an initial prompt that starts the build.
+## Using it
 
-Then Claude asks what you want to build and where it should land.
+In Claude Code, just say what you want:
+
+> start a Xano build from a template — a support ticketing app
+
+Claude invokes the skill and walks the two acts:
+
+**Act 1 — setup (first run):**
+
+1. **Asks what you want to build** and whether you'll want changes after.
+2. **Installs the Xano CLI** (`@xano/cli`) quietly, and **registers the Xano
+   Developer MCP** with Claude Code — only whatever's actually missing.
+3. **Signs you in** — you run `xano auth` in your terminal (choose *sign up* if
+   you're brand new); Claude waits until it lands.
+4. **Has you restart Claude once** with `claude --resume <id>` so the Xano tools
+   load. (Skipped if the tools are already live.)
+
+**Act 2 — build (resumed run):**
+
+5. **Detects your plan** (Free vs paid) and routes the push to the right target:
+   your existing **workspace** on Free, a disposable **sandbox** on paid, or a
+   **fresh build**.
+6. **Picks an item** from the **live xano-community catalog** (pulled from GitHub
+   that run) — a full app, a module, or a third-party integration.
+7. **Previews the import** with a dry-run and shows you exactly what will change.
+8. **Pushes only after you say yes**, **verifies the objects actually landed**, then
+   **configures and hands off** — env vars, frontend API base URL, seed data, and
+   next-step links.
 
 ---
 
 ## What you'll need
 
-The bootstrap sets these up for you — listed so you know what it touches:
-
-- **A terminal** (macOS or Linux).
-- **`git`** and **`curl`** already present (standard on most machines).
-- **Node.js ≥ 20.12.0** — a private copy is installed if you don't have one.
+- **Claude Code**, already installed and signed in.
+- **A terminal** (macOS or Linux) — the sign-in step (`xano auth`) opens a browser
+  and a terminal picker.
+- **Node.js ≥ 20.12.0** — the skill installs the Xano CLI with it; if Node is
+  missing it'll help you get it.
 - **A Xano account** — create one during `xano auth` (choose *sign up*) if you
-  don't have one yet.
-- **Claude Code** — installed for you if missing.
+  don't have one.
 
-Everything Xano-related installs under `~/.xano-community/start-xano-build/` and
-can be removed by deleting that directory (plus the `xano` MCP entry via
-`claude mcp remove xano` and the skill at `~/.claude/skills/start-xano-build`).
-
----
-
-## What Claude does once it's running
-
-The skill (`SKILL.md`) owns the **Xano workflow**, not setup. It:
-
-1. **Verifies the bootstrap state** — MCP tools present, Xano CLI installed and
-   authenticated. If anything's missing, it stops and tells you to rerun the
-   command above (it never tries to install or register things mid-session).
-2. **Detects your plan** (Free vs paid) and routes the push to the right target:
-   your existing **workspace** on Free, a disposable **sandbox** on paid, or a
-   **fresh build**.
-3. **Picks an item** from the **live xano-community catalog** (pulled from GitHub
-   that run) — a full app, a module, or a third-party integration.
-4. **Previews the import** with a dry-run and shows you exactly what will change.
-5. **Pushes only after you say yes**, then **verifies the objects actually
-   landed** — never reporting success off a dry-run alone.
-6. **Configures and hands off** — env vars, frontend API base URL, seed data, and
-   next-step links.
+The Xano CLI installs globally via npm; the Xano Developer MCP runs on demand via
+`npx`. To remove them later: `claude mcp remove xano`, `npm uninstall -g @xano/cli`,
+and delete `~/.claude/skills/start-xano-build`.
 
 ---
 
@@ -95,31 +92,17 @@ https://github.com/orgs/xano-community/repositories
 
 > If GitHub's unauthenticated rate limits or curation ever become an issue, the
 > skill can fetch the catalog from a proxy endpoint instead (via a
-> `XANO_CATALOG_URL` the bootstrap sets) — no credentials embedded in the public
-> script. Until then, the direct org listing is the source of truth.
+> `XANO_CATALOG_URL` set in the session) — no credentials embedded. Until then, the
+> direct org listing is the source of truth.
 
 ---
 
 ## What's in here
 
 ```
-start.sh                      # the terminal bootstrap (installs, authenticates, launches Claude)
-SKILL.md                      # the skill — six gated phases the agent follows
+SKILL.md                      # the skill — two acts, gated phases the agent follows
 references/
   cli-cheatsheet.md           # the Xano CLI commands used, with a headless fallback
   templates.md                # deterministic org listing, goal→repo hints, the two layouts
 ```
-
-## Manual install
-
-Prefer to set up the skill yourself? Clone it into your Claude Code skills
-directory:
-
-```sh
-git clone https://github.com/xano-community/start-xano-build.git \
-  ~/.claude/skills/start-xano-build
-```
-
-You'll still need the Xano CLI installed and authenticated and the Xano Developer
-MCP registered before the skill can run — which is exactly what `start.sh`
-automates. Running the one-paste command above is the supported path.
+</content>
