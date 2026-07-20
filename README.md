@@ -1,108 +1,111 @@
 # start-xano-build
 
-**A Claude Code skill that imports a certified
-[xano-community](https://github.com/orgs/xano-community/repositories) template,
-module, or third-party integration into Xano — installing the Xano CLI,
-registering the Xano Developer MCP, signing you in, and building, all from one
-conversation.**
+Two agent skills that get you from **no Xano tooling** to **building on Xano** — in
+any local, MCP-capable coding agent (Claude Code, Cursor, Windsurf, Cline, VS
+Code/Copilot, Codex, Gemini CLI, OpenCode, and others).
 
-You install the skill once. From then on, just tell Claude what you want to build
-("start a Xano CRM", "add Stripe payments") and the skill handles the rest: it sets
-up the Xano tools, has you sign in, restarts Claude once so the tools load, then
-picks the right template from the live catalog and pushes it into your account.
-
-> **Claude Code only.** Support for other tools may come later.
+Each skill is a single self-contained `SKILL.md`. They're meant to be **linked by
+raw URL** — point your agent at the file and let it run the flow. Nothing here is
+baked into a specific client.
 
 ---
 
-## Install the skill
+## The two skills
 
-Clone it into your Claude Code skills directory:
+### 1. `start-xano` — set up the Xano developer tools
 
-```sh
-git clone https://github.com/xano-community/start-xano-build.git \
-  ~/.claude/skills/start-xano-build
+Takes a user from "no Xano tooling" to "CLI installed and signed in, the Xano
+Developer MCP live in my agent, my workspace pulled locally under git, and a clear
+idea of how to work." It installs (and updates) the Xano CLI, registers the Xano
+Developer MCP with whatever agent is running, signs the CLI in, restarts the agent
+once so the tools load, then pulls your workspace to local files and orients you on
+how everyday Xano development works.
+
+**It reads (pulls) but never pushes or deploys anything to Xano** — changing your
+workspace is your next move, on your terms.
+
+Raw URL:
+
+```
+https://raw.githubusercontent.com/xano-community/start-xano-build/refs/heads/main/start-xano/SKILL.md
 ```
 
-That's the whole install. The **first time you run it**, the skill installs the
-Xano CLI and registers the Xano Developer MCP for you — so a one-time Claude
-restart is part of that first run (Claude only loads MCP tools at startup). The
-skill hands you the exact `claude --resume …` command and picks up right where it
-left off.
+### 2. `start-xano-with-template` — build from a xano-community template
+
+Owns the whole path from a fresh agent session to a working Xano backend built from
+a certified **[xano-community](https://github.com/orgs/xano-community/repositories)**
+item — a full app, a module, or a third-party integration. It does everything
+`start-xano` does for setup, then detects Free vs paid, **always pulls the target
+workspace first**, merges the template into a copy of it (so the import only ever
+*adds* — nothing of yours is overwritten), previews with a dry-run, pushes only
+after you approve, verifies the push landed, and for full apps deploys the frontend
+to Xano static hosting.
+
+Raw URL:
+
+```
+https://raw.githubusercontent.com/xano-community/start-xano-build/refs/heads/main/start-xano-with-template/SKILL.md
+```
 
 ---
 
-## Using it
+## Which one do I want?
 
-In Claude Code, just say what you want:
+- **Just getting set up, or want to work on your *existing* workspace?** →
+  `start-xano`. It gets the tools live and pulls your workspace locally, then hands
+  off to you.
+- **Want to spin up something new from a community template?** →
+  `start-xano-with-template`. It includes the same setup, then imports the template
+  into your workspace.
 
-> start a Xano build from a template — a support ticketing app
-
-Claude invokes the skill and walks the two acts:
-
-**Act 1 — setup (first run):**
-
-1. **Asks what you want to build** and whether you'll want changes after.
-2. **Installs the Xano CLI** (`@xano/cli`) quietly, and **registers the Xano
-   Developer MCP** with Claude Code — only whatever's actually missing.
-3. **Signs you in** — you run `xano auth` in your terminal (choose *sign up* if
-   you're brand new); Claude waits until it lands.
-4. **Has you restart Claude once** with `claude --resume <id>` so the Xano tools
-   load. (Skipped if the tools are already live.)
-
-**Act 2 — build (resumed run):**
-
-5. **Detects your plan** (Free vs paid) and routes the push to the right target:
-   your existing **workspace** on Free, a disposable **sandbox** on paid, or a
-   **fresh build**.
-6. **Picks an item** from the **live xano-community catalog** (pulled from GitHub
-   that run) — a full app, a module, or a third-party integration.
-7. **Previews the import** with a dry-run and shows you exactly what will change.
-8. **Pushes only after you say yes**, **verifies the objects actually landed**, then
-   **configures and hands off** — env vars, frontend API base URL, seed data, and
-   next-step links.
+You don't need both — `start-xano-with-template` covers setup on its own.
 
 ---
 
-## What you'll need
+## Using a skill by URL
 
-- **Claude Code**, already installed and signed in.
-- **A terminal** (macOS or Linux) — the sign-in step (`xano auth`) opens a browser
-  and a terminal picker.
-- **Node.js ≥ 20.12.0** — the skill installs the Xano CLI with it; if Node is
-  missing it'll help you get it.
+Both skills are agent-agnostic and self-contained. To run one, give your agent the
+raw URL above and ask it to fetch and follow the skill, e.g.:
+
+> Fetch and run this skill:
+> https://raw.githubusercontent.com/xano-community/start-xano-build/refs/heads/main/start-xano/SKILL.md
+
+Or install it into your agent's skills directory. For Claude Code:
+
+```sh
+mkdir -p ~/.claude/skills/start-xano
+curl -fsSL \
+  https://raw.githubusercontent.com/xano-community/start-xano-build/refs/heads/main/start-xano/SKILL.md \
+  -o ~/.claude/skills/start-xano/SKILL.md
+```
+
+(Swap in `start-xano-with-template` for the other skill.) Other agents load skills
+their own way — drop the `SKILL.md` wherever that agent reads skills from.
+
+---
+
+## Requirements
+
+- **A local coding agent with shell + filesystem access**, running on *your own*
+  machine — real terminal, local filesystem, editable config. A server-side/cloud
+  sandbox that only runs `npm` (Claude web, ChatGPT web) does **not** qualify; each
+  skill detects this and hands you local-agent options.
+- **Node.js ≥ 20.12.0** — the runtime for the Xano CLI. The skill installs the CLI
+  with it and helps you get Node if it's missing.
 - **A Xano account** — create one during `xano auth` (choose *sign up*) if you
   don't have one.
 
 The Xano CLI installs globally via npm; the Xano Developer MCP runs on demand via
-`npx`. To remove them later: `claude mcp remove xano`, `npm uninstall -g @xano/cli`,
-and delete `~/.claude/skills/start-xano-build`.
-
----
-
-## What's supported
-
-Whatever the **xano-community** org publishes. The skill pulls the catalog from
-GitHub on **every run** (deterministically — not by summarizing a web page, which
-can invent repos), so new templates and integrations show up the moment they land
-in the org. Nothing is baked into the skill.
-
-Browse everything in the org:
-https://github.com/orgs/xano-community/repositories
-
-> If GitHub's unauthenticated rate limits or curation ever become an issue, the
-> skill can fetch the catalog from a proxy endpoint instead (via a
-> `XANO_CATALOG_URL` set in the session) — no credentials embedded. Until then, the
-> direct org listing is the source of truth.
+`npx`. Because MCP servers only load at startup, both skills have you **restart your
+agent once** so the Xano tools come live — that's a normal part of the first run.
 
 ---
 
 ## What's in here
 
 ```
-SKILL.md                      # the skill — two acts, gated phases the agent follows
-references/
-  cli-cheatsheet.md           # the Xano CLI commands used, with a headless fallback
-  templates.md                # deterministic org listing, goal→repo hints, the two layouts
+start-xano/
+  SKILL.md                     # set up the Xano dev tools; pull the workspace; orient
+start-xano-with-template/
+  SKILL.md                     # setup + import a xano-community template into a workspace
 ```
-</content>
