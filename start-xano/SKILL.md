@@ -435,21 +435,24 @@ just say so and skip.)
 that uses the VS Code Marketplace.** In any terminal agent (OpenCode, Codex CLI, Gemini CLI,
 Claude Code) **skip this entirely and don't mention it** — there's no editor to install into.
 
-When you *are* in VS Code, work through it in this order — **don't run any `code` command
-until you've confirmed the `code` CLI actually exists**, or it errors with "command not found":
+When you *are* in VS Code:
 
-1. **Is the `code` CLI on PATH?** — `command -v code`.
-   - **No** → don't try `code --install-extension` (it'll fail). Tell the user to install it
-     manually: open the Extensions panel (⇧⌘X / Ctrl+Shift+X), search **"XanoScript"**, and
-     click Install (extension id `xano.xanoscript-language-server`). (They can enable CLI
-     installs later via Command Palette → "Shell Command: Install 'code' command in PATH", but
-     don't block on it.) Don't offer to install something you can't run.
-2. **`code` exists → is the extension already installed?** —
-   `code --list-extensions | grep -qi xano.xanoscript-language-server`
-   - **Installed** → say it's already set up (or say nothing); don't reinstall.
-   - **Not installed** → offer the **XanoScript Language Server** extension (syntax
-     highlighting, validation, autocomplete for `.xs`); confirm first (it modifies their
-     editor), then run `code --install-extension xano.xanoscript-language-server`.
+1. **Detect whether it's already installed by checking the extensions folder on disk** — this
+   is reliable; **don't use `code --list-extensions`** (it needs the `code` CLI on PATH and can
+   report the wrong list, since it may point at a different VS Code instance — stable vs
+   Insiders vs the remote server):
+   ```sh
+   ls -d ~/.vscode*/extensions/xano.xanoscript-language-server-* \
+         ~/.cursor/extensions/xano.xanoscript-language-server-* \
+         ~/.windsurf/extensions/xano.xanoscript-language-server-* 2>/dev/null
+   ```
+   Any path printed → **already installed**; say so (or say nothing) and skip — don't reinstall.
+2. **Nothing printed → offer to install** the **XanoScript Language Server** (syntax
+   highlighting, validation, autocomplete for `.xs`); confirm first (it modifies their editor):
+   - **`code` CLI on PATH** (`command -v code`) → `code --install-extension xano.xanoscript-language-server`.
+   - **No `code`** → manual: open the Extensions panel (⇧⌘X / Ctrl+Shift+X), search
+     **"XanoScript"**, and click Install (id `xano.xanoscript-language-server`). Don't offer a
+     `code` install you can't run.
 
 Wrap up in a line: what's now in place — "Your workspace is in `./<workspace>`, under git"
 (add ", with the XanoScript extension installed" **only if you actually installed it**),

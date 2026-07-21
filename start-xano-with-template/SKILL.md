@@ -829,15 +829,14 @@ cd ./<workspace>-git && git init -q && git add . && git commit -q -m "Import <te
 ```
 
 **Optional — VS Code extension.** *Only if the agent is running in VS Code* (or a VS
-Code-based editor); in a terminal agent, skip it and don't mention it. **Check for the `code`
-CLI before running any `code` command** (it errors "command not found" otherwise):
-- **`command -v code` fails** → don't try `code --install-extension`. Tell the user to install
-  it manually: Extensions panel (⇧⌘X / Ctrl+Shift+X) → search **"XanoScript"** → Install
-  (`xano.xanoscript-language-server`).
-- **`code` exists** → check if it's already installed
-  (`code --list-extensions | grep -qi xano.xanoscript-language-server`); if so, don't offer.
-  Otherwise offer the XanoScript language server, confirm, then
-  `code --install-extension xano.xanoscript-language-server`.
+Code-based editor); in a terminal agent, skip it and don't mention it.
+- **Detect if it's installed by checking the extensions folder on disk** (reliable; **don't
+  use `code --list-extensions`** — it needs `code` on PATH and can point at a different VS Code
+  instance): `ls -d ~/.vscode*/extensions/xano.xanoscript-language-server-* ~/.cursor/extensions/xano.xanoscript-language-server-* ~/.windsurf/extensions/xano.xanoscript-language-server-* 2>/dev/null`.
+  Any path printed → installed; don't offer.
+- **Not installed → offer, confirm**, then install: `code` on PATH →
+  `code --install-extension xano.xanoscript-language-server`; no `code` → manual (Extensions
+  panel → search "XanoScript" → Install).
 
 **Optional — tidy up.** The baseline snapshot (`./workspace`) and any verify/temp pulls hold
 `--env` secrets and aren't needed anymore — offer to delete them. Keep the working folder
