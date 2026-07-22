@@ -809,16 +809,22 @@ Use the repo's README (Install/Configure) as the checklist. Narrate each briefly
   working folder was pulled with `-w <dest-id>`). Seeding the wrong workspace returns a cheerful
   200 while the new workspace stays empty — the exact trap the Phase 4 profile switch prevents.
 - **Frontend (full apps)** — take it all the way to a live URL; *where* depends on the plan.
-  1. **Fill the frontend's API-group placeholders.** Templates ship the frontend with a
-     `__CANON_<GROUP>__` placeholder per api group, because Xano assigns each group's `api:<canonical>`
-     slug **uniquely per workspace on push** (it's *not* the group's folder name, so it can't be
-     hardcoded — that's what makes two installs collide). Discover each group's assigned canonical and
-     substitute it in (see "Fill the API-group canonicals" below); the host comes from the user's
-     first-load setup. Edit the file yourself; never the Meta API. (A legacy template that hardcodes one
-     base URL: just wire that one URL.)
+  1. **Fill the frontend's API canonicals — required, the moment the workspace is live.** Templates ship
+     the frontend with a `__CANON_<GROUP>__` placeholder per api group, because Xano assigns each group's
+     `api:<canonical>` slug **uniquely per workspace on push** (it's *not* the group's folder name, so it
+     can't be hardcoded — that's what makes two installs collide). **The file is a dead frontend until you
+     substitute the real slugs in — whether the user opens it locally or you host it.** So as soon as the
+     workspace is deployed, discover each group's assigned canonical and replace **every** placeholder (see
+     "Fill the API-group canonicals" below). Only the canonicals are baked in here; the instance host stays
+     the user's first-load setup input. Edit the file yourself; never the Meta API. (A legacy template that
+     hardcodes one base URL: just wire that one URL.)
   2. **Deploy, by plan:**
-     - **Free → local only.** Free can't use static hosting. Hand over the wired
-       `frontend/index.html` (open locally / host anywhere); a paid plan unlocks a public URL.
+     - **Free → the wired local file (a complete demo).** Free can't use static hosting, so hand over the
+       **canonical-filled** `frontend/index.html`. It runs as a real local demo: the user opens the file in
+       a browser, enters their instance base URL on first load, and it talks to their live workspace
+       (Xano's public APIs allow the cross-origin call from a local file). Because you already filled the
+       canonicals in step 1, base-URL-only is all the user does. A paid plan later unlocks a public
+       static-host URL.
      - **Paid → publish to Xano static hosting via the CLI**, three steps: **create a host →
        push the folder as a build → deploy to dev, then prod.** The CLI zips the folder for
        you. Prefer a **new** host; never replace an existing host's build. Tiers set how many
@@ -861,10 +867,10 @@ For **every** `__CANON_<GROUP>__` placeholder in `frontend/index.html`, find tha
 `canonical`, and replace the placeholder with the real slug. The frontend prepends the base URL host
 (`https://$HOST`, or the user's first-load setup value) to the `api:<canonical>` paths.
 
-**Before pushing the build to static hosting, verify none remain:** `grep -c '__CANON_' frontend/index.html`
-must print `0`. A leftover placeholder ships a dead frontend. If a group's canonical is genuinely missing
-from the pull, re-pull; **don't** fall back to the Meta API — or ask the user to paste the `api:XXXX` from
-the group's page in the dashboard.
+**Before you hand off the file (local) or push a build (static hosting), verify none remain:**
+`grep -c '__CANON_' frontend/index.html` must print `0` — a leftover placeholder ships a dead frontend
+either way. If a group's canonical is genuinely missing from the pull, re-pull; **don't** fall back to the
+Meta API — or ask the user to paste the `api:XXXX` from the group's page in the dashboard.
 
 ### Summarize (plain language, no browser)
 
