@@ -739,7 +739,7 @@ a verified push exists.
 ### Free — share the workspace URL after the push
 
 Give Free the same closure paid gets from the sandbox review. Resolve the **API base URL**
-with the CLI-only lookup below ("Look up the API base URL") and hand it over — "your APIs are
+with the CLI-only lookup below ("Fill the API-group canonicals") and hand it over — "your APIs are
 live here now" — and tell them where to see it in the builder: **go to `app.xano.com`**, open
 the **<instance>** instance and **<workspace> (<id>)** workspace, and look under **<where the
 imported objects live — e.g. the API group / tables / functions>**. **Don't build a
@@ -809,8 +809,13 @@ Use the repo's README (Install/Configure) as the checklist. Narrate each briefly
   working folder was pulled with `-w <dest-id>`). Seeding the wrong workspace returns a cheerful
   200 while the new workspace stays empty — the exact trap the Phase 4 profile switch prevents.
 - **Frontend (full apps)** — take it all the way to a live URL; *where* depends on the plan.
-  1. **Wire it to the workspace API base URL** (resolved CLI-only below — for paid, the
-     workspace just promoted into). Edit the file yourself; never the Meta API.
+  1. **Fill the frontend's API-group placeholders.** Templates ship the frontend with a
+     `__CANON_<GROUP>__` placeholder per api group, because Xano assigns each group's `api:<canonical>`
+     slug **uniquely per workspace on push** (it's *not* the group's folder name, so it can't be
+     hardcoded — that's what makes two installs collide). Discover each group's assigned canonical and
+     substitute it in (see "Fill the API-group canonicals" below); the host comes from the user's
+     first-load setup. Edit the file yourself; never the Meta API. (A legacy template that hardcodes one
+     base URL: just wire that one URL.)
   2. **Deploy, by plan:**
      - **Free → local only.** Free can't use static hosting. Hand over the wired
        `frontend/index.html` (open locally / host anywhere); a paid plan unlocks a public URL.
@@ -841,18 +846,25 @@ Use the repo's README (Install/Configure) as the checklist. Narrate each briefly
   silent, unwired file.
 - **Tests** — `xano unit_test run_all -w <id>` if present. Workflow tests are paid-gated.
 
-#### Look up the API base URL — CLI only, no Metadata API
+#### Fill the API-group canonicals — CLI only, no Metadata API
 
-`https://<instance-host>/api:<canonical>`, `<canonical>` server-assigned — read it from the
-working folder, not the template clone:
+Each api group's `api:<canonical>` slug is **server-assigned, unique per workspace** (the repo ships it
+blank), so read the *real* ones from a fresh pull of the destination workspace and substitute them into
+the frontend. Read from the working folder, not the template clone:
 ```sh
 HOST=$(xano profile me -o json | jq -r '.extras.instance.xano_domain // .extras.instance.host')
-xano workspace pull -d ./<workspace>-<template> -w <id>            # reuse the refreshed working folder
-grep -Ri 'canonical' ./<workspace>-<template>/api/<group>/api_group.xs
+xano workspace pull -d ./<workspace>-<template> -w <id>              # refresh with the assigned canonicals
+grep -Rh 'canonical' ./<workspace>-<template>/api/*/                 # each group's slug, e.g. canonical = "WBmVF-GK"
 ```
-Match the README's API group to its folder, read the canonical, join `https://$HOST/api:<canonical>`.
-If the slug is genuinely absent, **don't** fall back to the Meta API — ask the user to paste
-the `api:XXXX` from the group's page in the dashboard.
+For **every** `__CANON_<GROUP>__` placeholder in `frontend/index.html`, find that group's folder under
+`api/<group>/` (match the group in the placeholder name / the README's API-group list), read its
+`canonical`, and replace the placeholder with the real slug. The frontend prepends the base URL host
+(`https://$HOST`, or the user's first-load setup value) to the `api:<canonical>` paths.
+
+**Before pushing the build to static hosting, verify none remain:** `grep -c '__CANON_' frontend/index.html`
+must print `0`. A leftover placeholder ships a dead frontend. If a group's canonical is genuinely missing
+from the pull, re-pull; **don't** fall back to the Meta API — or ask the user to paste the `api:XXXX` from
+the group's page in the dashboard.
 
 ### Summarize (plain language, no browser)
 
