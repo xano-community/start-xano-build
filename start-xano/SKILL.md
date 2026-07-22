@@ -415,6 +415,23 @@ Pull **without `--env`** here — this copy is meant for git, and `--env` would 
 secret values to disk. Then, e.g.: "Pulled your workspace — APIs, tables, and functions
 are now in `./<workspace>` as editable files."
 
+### Pin the profile to this workspace
+
+So every command run in this folder targets the workspace you just pulled — not whatever the
+profile's **global default** happens to be. They diverge the moment the account has more than
+one workspace, and a stray command (or an API/seed call that resolves via the profile) against
+the wrong one is a silent footgun. This only writes a folder-local `profile.yaml` (no global
+change, no secrets), so a quick heads-up is enough — **offer it**, then pin:
+
+```sh
+( cd ./<workspace> && xano profile use "$(xano profile get)" -w <id> )   # writes a no-secrets profile.yaml
+xano profile workspace                                                    # verify it prints <id>
+```
+
+`profile.yaml` holds no secrets — just the profile name and workspace id — so it's safe to
+commit; it keeps this folder locked to the right workspace for the user and anyone who clones
+it. (Every command then prints `Using profile '<name>' (workspace <id>) · profile.yaml`.)
+
 ### Initialize git
 
 So they can track changes and roll back. In the pulled folder:
@@ -530,6 +547,8 @@ xano profile create <name> -i <origin> -t <token> -w <id> --default   # token, n
 # Get set up for local work (Step 7)
 xano workspace list                           # find the workspace id
 xano workspace pull -d ./<workspace> -w <id>  # pull code locally (no --env for a git-safe copy)
+( cd ./<workspace> && xano profile use "$(xano profile get)" -w <id> )   # pin the folder to this workspace (profile.yaml, no secrets)
+xano profile workspace                        # verify the pin — prints <id>
 git init -q && git add . && git commit -q -m "Initial Xano workspace pull"
 code --install-extension xano.xanoscript-language-server   # VS Code only, if `code` is on PATH
 

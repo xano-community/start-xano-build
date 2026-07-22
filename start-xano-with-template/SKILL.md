@@ -156,6 +156,17 @@ links where you have them):
   `workspace:workflow_test`).
 - **Never invent IDs or instance URLs.** Read them from `xano workspace list`,
   `xano profile me`, or command output.
+- **Point the profile at the build workspace — creating one doesn't select it.** `xano
+  workspace create` (and promoting a template into a workspace) does **not** change the
+  profile's default workspace. So anything that resolves through the profile instead of an
+  explicit `-w` — a **seed HTTP call**, an API-base-URL lookup, `unit_test run_all` without
+  `-w` — silently hits the *old* default workspace. This is a real failure mode: the seed
+  returns 200 against the wrong workspace and the new one stays empty. The moment you know the
+  destination id (Phase 4), **ask the user, then** set it — `xano profile edit -w <id>`, verify
+  with `xano profile workspace` — asking first because it changes the profile's default for
+  their other work too. Once the working folder exists, also pin it with `xano profile use
+  <profile> -w <id>` (writes `profile.yaml` so commands in that folder can't drift). Still pass
+  `-w <id>` explicitly on every command.
 - **Prefer the MCP docs tools over memory.** For exact CLI flags or XanoScript syntax,
   call `xano_cli_docs` and `xano_xanoscript_docs` (and `xano_meta_api_docs` only to
   *read* about the Meta API, never to call it). Or `xano <cmd> --help`.
@@ -456,6 +467,42 @@ paid, errors on Free — sandbox is paid-only). If unsure, ask.
 **Pre-flag gated features** the plan lacks (commonly `workspace:workflow_test` on Free);
 carry them as `-e` excludes into both the dry-run and the real push in Phase 6/7.
 
+### Point the profile at the destination workspace (ask, then switch — the moment you have its id)
+
+Creating or choosing the target does **not** switch the profile to it — the profile keeps its
+old default workspace, and any step that resolves through the profile instead of an explicit
+`-w` (the **seed call** especially, plus the API-base lookup and tests) will hit the wrong
+workspace. So switch it now, before you pull — but **ask first**, because it changes the
+profile's default workspace for the user's other work too. Skip the question only when the
+destination already *is* the profile's current workspace (`xano profile workspace` — common on
+Free with one workspace).
+
+**Defined question:**
+
+```
+We're building in "<name> (<id>)", but your Xano profile still points at "<other> (<other-id>)".
+If I don't switch it, the import — and especially **seeding demo data** — can land in the wrong
+workspace. Want me to point your profile at "<name> (<id>)" for this build? (yes / no)
+```
+
+On **yes**:
+
+```sh
+xano profile edit -w <dest-id>     # point the profile's default workspace at the build target
+xano profile workspace             # verify — must print <dest-id>
+```
+
+On **no**: don't switch — but then you **must** pass `-w <dest-id>` on every command and build
+the seed URL from the destination workspace's own canonical yourself, and warn the user that
+anything resolving through the profile will otherwise hit "<other>".
+
+Either way, once the combined working folder exists (Phase 6), **pin that folder** so its
+commands can't drift regardless of the global default:
+
+```sh
+( cd ./<workspace>-<template> && xano profile use <profile> -w <dest-id> )   # writes a no-secrets profile.yaml
+```
+
 ### Always pull the target workspace first (every plan tier, every time)
 
 **Pull a snapshot of the target workspace to disk before importing anything — on *every*
@@ -748,7 +795,11 @@ Use the repo's README (Install/Configure) as the checklist. Narrate each briefly
 - **Environment variables** — existing vars were preserved (pulled + pushed with `--env`).
   What still needs values are the **new** keys the template requires (e.g. `STRIPE_API_KEY`
   from `.env.example`). Set those in the Xano dashboard. Never hardcode secrets into `.xs`.
-- **Seed / demo data** — if the README documents a seed endpoint, offer to call it.
+- **Seed / demo data** — if the README documents a seed endpoint, offer to call it. **First
+  confirm you're seeding the build workspace, not another:** `xano profile workspace` must print
+  the destination id from Phase 4, and build the seed URL from *this* workspace's canonical (the
+  working folder was pulled with `-w <dest-id>`). Seeding the wrong workspace returns a cheerful
+  200 while the new workspace stays empty — the exact trap the Phase 4 profile switch prevents.
 - **Frontend (full apps)** — take it all the way to a live URL; *where* depends on the plan.
   1. **Wire it to the workspace API base URL** (resolved CLI-only below — for paid, the
      workspace just promoted into). Edit the file yourself; never the Meta API.
@@ -908,6 +959,11 @@ xano workspace create "<name>"        # paid only
 xano workspace edit -w <id> --allow-push   # paid: enable direct CLI push (off by default)
 xano workspace pull -d ./code -w <id> --env
 xano workspace push -d ./code -w <id> --env [-e 'glob'] --dry-run | --force
+
+# Point the profile at the workspace you're building in (creating/promoting doesn't select it)
+xano profile workspace                # print the profile's current default workspace id
+xano profile edit -w <id>             # set the profile's default workspace to the build target
+xano profile use <profile> -w <id>    # pin THIS folder to a workspace via profile.yaml (no secrets)
 
 # Sandbox (paid staging; Free can't use it)
 xano sandbox get
