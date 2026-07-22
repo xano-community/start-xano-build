@@ -161,12 +161,13 @@ links where you have them):
   profile's default workspace. So anything that resolves through the profile instead of an
   explicit `-w` — a **seed HTTP call**, an API-base-URL lookup, `unit_test run_all` without
   `-w` — silently hits the *old* default workspace. This is a real failure mode: the seed
-  returns 200 against the wrong workspace and the new one stays empty. The moment you know the
-  destination id (Phase 4), **ask the user, then** set it — `xano profile edit -w <id>`, verify
-  with `xano profile workspace` — asking first because it changes the profile's default for
-  their other work too. Once the working folder exists, also pin it with `xano profile use
-  <profile> -w <id>` (writes `profile.yaml` so commands in that folder can't drift). Still pass
-  `-w <id>` explicitly on every command.
+  returns 200 against the wrong workspace and the new one stays empty. **The instant you create
+  a new workspace (right after `xano workspace create`) or target one that isn't the profile's
+  current default — before the next Xano command — ask the user, then** set it: `xano profile
+  edit -w <id>`, verify with `xano profile workspace`. Ask first because it changes the profile's
+  default for their other work too. Once the working folder exists, also pin it with `xano
+  profile use <profile> -w <id>` (writes `profile.yaml` so commands in that folder can't drift).
+  Still pass `-w <id>` explicitly on every command.
 - **Prefer the MCP docs tools over memory.** For exact CLI flags or XanoScript syntax,
   call `xano_cli_docs` and `xano_xanoscript_docs` (and `xano_meta_api_docs` only to
   *read* about the Meta API, never to call it). Or `xano <cmd> --help`.
@@ -450,10 +451,14 @@ paid, errors on Free — sandbox is paid-only). If unsure, ask.
     your existing "<name>". Which would you prefer?
     ```
   Then route the answer:
-  - **New** → `xano workspace create "<name>"` (paid only); capture the new id. Empty, so
-    no collisions — you'll skip the Phase 6 collision check.
+  - **New** → `xano workspace create "<name>"` (paid only); capture the new id. **The instant
+    this returns — before any pull, push, seed, or other Xano command — ask + switch the profile
+    to the new id** (next subsection). A freshly created workspace is *never* the profile's
+    default, so this is the step whose absence seeds the wrong workspace. Empty, so no
+    collisions — you'll skip the Phase 6 collision check.
   - **Existing** → that id is the destination (the Phase 6 merge + collision handling
-    protects their existing work either way).
+    protects their existing work either way). **If it isn't already the profile's current
+    workspace (`xano profile workspace`), ask + switch to it now** (next subsection).
 
   Either way the template is **staged in the sandbox and promoted into the chosen
   workspace** (Phase 7): `xano sandbox get`. **Note:** a paid direct `xano workspace push`
@@ -467,15 +472,18 @@ paid, errors on Free — sandbox is paid-only). If unsure, ask.
 **Pre-flag gated features** the plan lacks (commonly `workspace:workflow_test` on Free);
 carry them as `-e` excludes into both the dry-run and the real push in Phase 6/7.
 
-### Point the profile at the destination workspace (ask, then switch — the moment you have its id)
+### Point the profile at the destination workspace (ask, then switch — right when you create/select it)
 
-Creating or choosing the target does **not** switch the profile to it — the profile keeps its
-old default workspace, and any step that resolves through the profile instead of an explicit
-`-w` (the **seed call** especially, plus the API-base lookup and tests) will hit the wrong
-workspace. So switch it now, before you pull — but **ask first**, because it changes the
-profile's default workspace for the user's other work too. Skip the question only when the
-destination already *is* the profile's current workspace (`xano profile workspace` — common on
-Free with one workspace).
+**Tie this to the act of creating or selecting the workspace, not to a fixed point in the
+flow.** The phase order here (route → switch → pull) is the common path, but if you create a
+new workspace at any other moment, do this **immediately after `xano workspace create` returns**
+— before the next Xano command. `xano workspace create` (and promoting a template in) does
+**not** switch the profile to the new workspace; it keeps its old default, and any step that
+resolves through the profile instead of an explicit `-w` (the **seed call** especially, plus the
+API-base lookup and tests) then hits the wrong workspace. So switch it — but **ask first**,
+because it changes the profile's default workspace for the user's other work too. Skip the
+question only when the destination already *is* the profile's current workspace (`xano profile
+workspace` — common on Free with one workspace).
 
 **Defined question:**
 
