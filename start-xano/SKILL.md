@@ -52,7 +52,9 @@ helps inspect `xano --help`/versions, never real setup). **Lead with the option 
 where they are**, naming their context in "from here":
 
 - **From ChatGPT** → lead with the ChatGPT desktop app, then Codex CLI ("…from here in ChatGPT").
-- **From Claude (web)** → lead with Claude Code.
+- **From Claude (web)** → lead with the **Claude Code desktop app** (the local Mac/Windows
+  app — the easiest jump from Claude web, no terminal needed to start), with the Claude Code
+  terminal CLI or a Cursor/VS Code extension as alternatives.
 - **From Gemini (web)** → lead with the Gemini CLI (or Gemini Code Assist in VS Code).
 - **An unrecognized web/hosted agent** → if it has a known local or desktop version, lead
   with that (name it); otherwise offer the general local options below.
@@ -74,7 +76,8 @@ links where you have them):
 > • **Codex CLI** — OpenAI's terminal coding agent (`npm i -g @openai/codex`)
 > • **Gemini CLI** — Google's terminal coding agent (`npm i -g @google/gemini-cli`)
 > • **OpenCode** — open-source terminal agent that works with any model (`npm i -g opencode-ai`)
-> • **Claude Code, Cursor, or VS Code** (with an agent extension)
+> • **Claude Code** — the **desktop app** (Mac/Windows, easiest to start), or the terminal CLI
+> • **Cursor or VS Code** (with an agent extension)
 >
 > Once you've got one open, paste in the skill and run it there.
 
