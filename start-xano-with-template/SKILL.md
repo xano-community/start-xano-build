@@ -147,6 +147,13 @@ links where you have them):
   Free. Paid uses the sandbox; the paid direct workspace push is off by default (below).
 - **Never push the template alone.** Always push a combined tree (existing workspace +
   template) so a sync/promotion can't delete the user's work (Phase 6).
+- **Keep the api_group canonicals on every workspace push — never strip or exclude `api_group.xs`.**
+  Each group's `api:<canonical>` slug is assigned per workspace; a template repo ships them blank, but the
+  **moment it's in the user's workspace they have real values**, and the pulled/working files carry those.
+  Push those same files back and Xano preserves the slug; blank one (or exclude the file) and Xano hands
+  out a **new** slug, silently breaking the frontend's `api:…` calls and any in-flight tests. Canonicals
+  are only ever blanked when publishing a template to the *public GitHub repo* — which this skill never
+  does. So here: always keep them.
 - **The live catalog is the source of truth.** Fetch it from GitHub each run with a
   **deterministic** command — never a summarizing web fetch, which fabricates repos.
   Verify a repo exists (HTTP 200) before cloning.
